@@ -9,96 +9,82 @@ import com.midterm.todolistwidget.R;
 import com.midterm.todolistwidget.data.models.Task;
 import com.midterm.todolistwidget.data.repository.TodoRepository;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class TodoWidgetService extends RemoteViewsService {
+
     @Override
     public RemoteViewsFactory onGetViewFactory(Intent intent) {
         return new TodoWidgetItemFactory(getApplicationContext());
     }
-}
 
-class TodoWidgetItemFactory implements RemoteViewsService.RemoteViewsFactory {
-    private Context context;
-    private List<Task> tasks;
-    private TodoRepository repository;
+    private class TodoWidgetItemFactory implements RemoteViewsFactory {
+        private Context context;
+        private TodoRepository repository;
+        private List<Task> tasks;
 
-    TodoWidgetItemFactory(Context context) {
-        this.context = context;
-        this.repository = TodoRepository.getInstance(context);
-    }
+        public TodoWidgetItemFactory(Context context) {
+            this.context = context;
+            this.repository = new TodoRepository(context);
+        }
 
-    @Override
-    public void onCreate() {
-        // Initialize the data
-        tasks = new ArrayList<>();
-    }
+        @Override
+        public void onCreate() {
+            // Initial data load
+            tasks = repository.getActiveTasks();
+        }
 
-    @Override
-    public void onDataSetChanged() {
-        // Refresh the task list
-        tasks = repository.getAllTasks();
-    }
+        @Override
+        public void onDataSetChanged() {
+            // Refresh data when widget is updated
+            tasks = repository.getActiveTasks();
+        }
 
-    @Override
-    public RemoteViews getViewAt(int position) {
-        if (position >= tasks.size()) return null;
+        @Override
+        public int getCount() {
+            return tasks != null ? tasks.size() : 0;
+        }
 
-        RemoteViews views = new RemoteViews(
-                context.getPackageName(),
-                R.layout.widget_item
-        );
+        @Override
+        public RemoteViews getViewAt(int position) {
+            if (tasks == null || tasks.isEmpty()) {
+                // Trả về view mặc định khi không có task nào
+                RemoteViews emptyView = new RemoteViews(context.getPackageName(), R.layout.widget_empty);
+                return emptyView;
+            }
 
-        Task task = tasks.get(position);
+            RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_item);
+            Task task = tasks.get(position);
+            views.setTextViewText(R.id.widget_task_title, task.getTitle());
 
-        // Set task title
-        views.setTextViewText(R.id.task_title, task.getTitle());
+            return views;
+        }
 
-        // Set task completion status using ImageView
-        int imageRes = task.isCompleted() ? R.drawable.ic_task_completed : R.drawable.ic_task_incomplete;
-        views.setImageViewResource(R.id.completed_image, imageRes);
+        @Override
+        public RemoteViews getLoadingView() {
+            // Trả về view "loading" nếu cần thiết
+            RemoteViews loadingView = new RemoteViews(context.getPackageName(), R.layout.widget_loading);
+            return loadingView;
+        }
 
-        // Set up click intent
-        Intent fillInIntent = new Intent();
-        fillInIntent.putExtra("task_id", task.getId());
-        views.setOnClickFillInIntent(R.id.task_title, fillInIntent);
+        @Override
+        public int getViewTypeCount() {
+            return 1;
+        }
 
-        return views;
-    }
+        @Override
+        public long getItemId(int position) {
+            return position;
+        }
 
+        @Override
+        public boolean hasStableIds() {
+            return true;
+        }
 
-
-    @Override
-    public int getCount() {
-        return tasks.size();
-    }
-
-    // Other required methods...
-    @Override
-    public RemoteViews getLoadingView() {
-        return new RemoteViews(String.valueOf(getLoadingView()), R.layout.loading_widget);
-    }
-
-
-    @Override
-    public int getViewTypeCount() {
-        return 1;
-    }
-
-    @Override
-    public long getItemId(int position) {
-        return position;
-    }
-
-    @Override
-    public boolean hasStableIds() {
-        return true;
-    }
-
-    @Override
-    public void onDestroy() {
-        tasks.clear();
+        @Override
+        public void onDestroy() {
+            // Clean up resources if needed
+        }
     }
 }
-

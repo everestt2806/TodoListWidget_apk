@@ -1,109 +1,75 @@
 package com.midterm.todolistwidget.data.repository;
 
 import android.content.Context;
-import android.os.AsyncTask;
+import android.util.Log;
 
-import com.midterm.todolistwidget.data.database.TodoDao;
 import com.midterm.todolistwidget.data.database.TodoDatabase;
+import com.midterm.todolistwidget.data.database.TodoDao;
 import com.midterm.todolistwidget.data.models.Task;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 public class TodoRepository {
+    private static final String TAG = "TodoRepository";
     private TodoDao todoDao;
-    private static TodoRepository instance;
+    private Executor executor = Executors.newSingleThreadExecutor();
 
-    private TodoRepository(Context context) {
-        TodoDatabase database = TodoDatabase.getInstance(context);
-        todoDao = database.todoDao();
-    }
-
-    public static synchronized TodoRepository getInstance(Context context) {
-        if (instance == null) {
-            instance = new TodoRepository(context);
+    public TodoRepository(Context context) {
+        try {
+            TodoDatabase database = TodoDatabase.getInstance(context);
+            todoDao = database.todoDao();
+        } catch (Exception e) {
+            Log.e(TAG, "Error initializing repository", e);
         }
-        return instance;
     }
 
-    public void insertTask(Task task) {
-        new InsertTaskAsyncTask(todoDao).execute(task);
+
+    public void insert(Task task) {
+        try {
+            executor.execute(() -> {
+                try {
+                    long id = todoDao.insertTask(task);
+                    Log.d(TAG, "Task inserted with ID: " + id);
+                } catch (Exception e) {
+                    Log.e(TAG, "Error inserting task", e);
+                }
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "Error in insert method", e);
+        }
     }
 
-    public void updateTask(Task task) {
-        new UpdateTaskAsyncTask(todoDao).execute(task);
+    public void update(Task task) {
+        executor.execute(() -> todoDao.updateTask(task));
     }
 
-    public void deleteTask(Task task) {
-        new DeleteTaskAsyncTask(todoDao).execute(task);
+    public void delete(Task task) {
+        executor.execute(() -> todoDao.deleteTask(task));
+    }
+
+    public void clearCompletedTasks() {
+        executor.execute(() -> todoDao.clearCompletedTasks());
     }
 
     public List<Task> getAllTasks() {
         try {
-            return new GetAllTasksAsyncTask(todoDao).execute().get();
+            return todoDao.getAllTasks();
         } catch (Exception e) {
             e.printStackTrace();
+            return null;
+        }
+    }
+
+    public List<Task> getActiveTasks() {
+        try {
+            List<Task> tasks = todoDao.getActiveTasks();
+            Log.d(TAG, "Retrieved " + (tasks != null ? tasks.size() : 0) + " active tasks");
+            return tasks != null ? tasks : new ArrayList<>();
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting active tasks", e);
             return new ArrayList<>();
-        }
-    }
-
-    //add
-    private static class InsertTaskAsyncTask extends AsyncTask<Task, Void, Void> {
-        private TodoDao todoDao;
-
-        private InsertTaskAsyncTask(TodoDao todoDao) {
-            this.todoDao = todoDao;
-        }
-
-        @Override
-        protected Void doInBackground(Task... tasks) {
-            todoDao.insertTask(tasks[0]);
-            return null;
-        }
-    }
-
-    //update
-    private static class UpdateTaskAsyncTask extends AsyncTask<Task, Void, Void> {
-        private TodoDao todoDao;
-
-        private UpdateTaskAsyncTask(TodoDao todoDao) {
-            this.todoDao = todoDao;
-        }
-
-        @Override
-        protected Void doInBackground(Task... tasks) {
-            todoDao.updateTask(tasks[0]);
-            return null;
-        }
-    }
-
-    //delete
-    private static class DeleteTaskAsyncTask extends AsyncTask<Task, Void, Void> {
-        private TodoDao todoDao;
-
-        private DeleteTaskAsyncTask(TodoDao todoDao) {
-            this.todoDao = todoDao;
-        }
-
-        @Override
-        protected Void doInBackground(Task... tasks) {
-            todoDao.deleteTask(tasks[0]);
-            return null;
-        }
-    }
-
-    //get all tasks
-    private static class GetAllTasksAsyncTask extends AsyncTask<Void, Void, List<Task>> {
-        private TodoDao todoDao;
-
-        private GetAllTasksAsyncTask(TodoDao todoDao) {
-            this.todoDao = todoDao;
-        }
-
-        @Override
-        protected List<Task> doInBackground(Void... voids) {
-            return todoDao.getAllTasks();
         }
     }
 }
