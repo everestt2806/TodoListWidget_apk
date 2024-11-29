@@ -2,4 +2,6 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="widget_header_text">#2C3E50</color>
+    <color name="widget_background_color">#F5F5F5</color>
 </resources>

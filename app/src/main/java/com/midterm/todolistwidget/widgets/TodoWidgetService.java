@@ -12,6 +12,7 @@ import com.midterm.todolistwidget.data.repository.TodoRepository;
 import java.util.List;
 
 public class TodoWidgetService extends RemoteViewsService {
+    private static final int INVALID_POSITION = -1;
 
     @Override
     public RemoteViewsFactory onGetViewFactory(Intent intent) {
@@ -19,8 +20,8 @@ public class TodoWidgetService extends RemoteViewsService {
     }
 
     private class TodoWidgetItemFactory implements RemoteViewsFactory {
-        private Context context;
-        private TodoRepository repository;
+        private final Context context;
+        private final TodoRepository repository;
         private List<Task> tasks;
 
         public TodoWidgetItemFactory(Context context) {
@@ -30,14 +31,21 @@ public class TodoWidgetService extends RemoteViewsService {
 
         @Override
         public void onCreate() {
-            // Initial data load
-            tasks = repository.getActiveTasks();
+            loadTasks();
         }
 
         @Override
         public void onDataSetChanged() {
-            // Refresh data when widget is updated
-            tasks = repository.getActiveTasks();
+            loadTasks();
+        }
+
+        private void loadTasks() {
+            try {
+                tasks = repository.getActiveTasks();
+            } catch (Exception e) {
+                e.printStackTrace();
+                tasks = null;
+            }
         }
 
         @Override
@@ -47,24 +55,44 @@ public class TodoWidgetService extends RemoteViewsService {
 
         @Override
         public RemoteViews getViewAt(int position) {
-            if (tasks == null || tasks.isEmpty()) {
-                // Trả về view mặc định khi không có task nào
-                RemoteViews emptyView = new RemoteViews(context.getPackageName(), R.layout.widget_empty);
-                return emptyView;
+            if (position == INVALID_POSITION || tasks == null || position >= tasks.size()) {
+                return null;
             }
 
-            RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_item);
             Task task = tasks.get(position);
-            views.setTextViewText(R.id.widget_task_title, task.getTitle());
+            RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_item);
 
-            return views;
+            try {
+                // Set task title
+                views.setTextViewText(R.id.widget_task_title, task.getTitle());
+
+                // Set checkbox state
+                views.setImageViewResource(R.id.checkbox_todo,
+                        task.isCompleted()
+                                ? R.drawable.ic_checkbox_checked
+                                : R.drawable.ic_checkbox_unchecked);
+
+                // Create fill-in intent for item click
+                Intent fillInIntent = new Intent();
+                fillInIntent.putExtra(TodoWidgetProvider.EXTRA_ITEM_POSITION, position);
+                fillInIntent.putExtra(TodoWidgetProvider.EXTRA_ITEM_ID, task.getId());
+
+                // Set click listeners for both the title and checkbox
+                views.setOnClickFillInIntent(R.id.widget_item_container, fillInIntent);
+                views.setOnClickFillInIntent(R.id.checkbox_todo, fillInIntent);
+                views.setOnClickFillInIntent(R.id.widget_task_title, fillInIntent);
+
+                return views;
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
         }
 
         @Override
         public RemoteViews getLoadingView() {
-            // Trả về view "loading" nếu cần thiết
-            RemoteViews loadingView = new RemoteViews(context.getPackageName(), R.layout.widget_loading);
-            return loadingView;
+            return new RemoteViews(context.getPackageName(), R.layout.widget_loading);
         }
 
         @Override
@@ -74,7 +102,7 @@ public class TodoWidgetService extends RemoteViewsService {
 
         @Override
         public long getItemId(int position) {
-            return position;
+            return tasks != null && position < tasks.size() ? tasks.get(position).getId() : position;
         }
 
         @Override
@@ -84,7 +112,7 @@ public class TodoWidgetService extends RemoteViewsService {
 
         @Override
         public void onDestroy() {
-            // Clean up resources if needed
+            tasks = null;
         }
     }
 }
