@@ -51,7 +51,7 @@ public class AddTaskActivity extends AppCompatActivity {
 
             // Insert task
             new Thread(() -> {
-                repository.insert(newTask);
+                repository.insertTask(newTask);
 
                 // Update widgets
                 runOnUiThread(() -> {

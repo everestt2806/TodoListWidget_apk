@@ -1,20 +1,22 @@
 package com.midterm.todolistwidget.data.database;
 
 import androidx.room.Dao;
+import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.Query;
 import androidx.room.Update;
-import androidx.room.Delete;
 
 import com.midterm.todolistwidget.data.models.Task;
+
 import java.util.List;
 
 @Dao
 public interface TodoDao {
-    @Query("SELECT * FROM tasks ORDER BY timestamp DESC")
+    @Query("SELECT * FROM tasks ORDER BY created_at DESC")
     List<Task> getAllTasks();
-    @Query("SELECT * FROM tasks WHERE isCompleted = 0 ORDER BY timestamp DESC")
-    List<Task> getActiveTasks();
+
+    @Query("UPDATE tasks SET completed = :isCompleted WHERE id = :taskId")
+    void updateTaskStatus(long taskId, boolean isCompleted);
 
     @Insert
     long insertTask(Task task);
@@ -25,6 +27,12 @@ public interface TodoDao {
     @Delete
     void deleteTask(Task task);
 
-    @Query("DELETE FROM tasks WHERE isCompleted = 1")
+    @Query("DELETE FROM tasks WHERE completed = 1")
     void clearCompletedTasks();
+
+    @Query("SELECT * FROM tasks WHERE completed = 0")
+    List<Task> getActiveTasks();
+
+    @Query("SELECT * FROM tasks WHERE completed = 1")
+    List<Task> getCompletedTasks();
 }

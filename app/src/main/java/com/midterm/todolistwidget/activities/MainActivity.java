@@ -65,14 +65,15 @@ public class MainActivity extends AppCompatActivity {
         try {
             new Thread(() -> {
                 try {
-                    List<Task> activeTasks = repository.getActiveTasks();
+
+                    List<Task> allTasks = repository.getAllTasks();
                     runOnUiThread(() -> {
                         try {
-                            if (activeTasks != null) {
+                            if (allTasks != null) {
                                 taskList.clear();
-                                taskList.addAll(activeTasks);
+                                taskList.addAll(allTasks);
                                 adapter.notifyDataSetChanged();
-                                Log.d(TAG, "Loaded " + activeTasks.size() + " tasks");
+                                Log.d(TAG, "Loaded " + allTasks.size() + " tasks");
                             } else {
                                 Log.w(TAG, "No tasks found");
                             }
@@ -88,6 +89,7 @@ public class MainActivity extends AppCompatActivity {
             Log.e(TAG, "Error in loadTasks method", e);
         }
     }
+
 
     @Override
     protected void onResume() {

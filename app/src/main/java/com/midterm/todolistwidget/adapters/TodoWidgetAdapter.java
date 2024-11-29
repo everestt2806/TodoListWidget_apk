@@ -18,9 +18,9 @@ import com.midterm.todolistwidget.data.repository.TodoRepository;
 import java.util.List;
 
 public class TodoWidgetAdapter extends ArrayAdapter<Task> {
-    private Context context;
-    private List<Task> tasks;
-    private TodoRepository repository;
+    private final Context context;
+    private final List<Task> tasks;
+    private final TodoRepository repository;
 
     public TodoWidgetAdapter(@NonNull Context context, List<Task> tasks, TodoRepository repository) {
         super(context, 0, tasks);
@@ -45,17 +45,31 @@ public class TodoWidgetAdapter extends ArrayAdapter<Task> {
         titleTextView.setText(currentTask.getTitle());
         completeCheckBox.setChecked(currentTask.isCompleted());
 
+        // Tránh trigger listener khi setting checked state
+        completeCheckBox.setOnCheckedChangeListener(null);
+        completeCheckBox.setChecked(currentTask.isCompleted());
+
         completeCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             currentTask.setCompleted(isChecked);
-            repository.update(currentTask);
+            repository.updateTaskStatus(currentTask.getId(), isChecked);
         });
 
         return listItem;
     }
 
+    @Override
+    public int getCount() {
+        return tasks.size();
+    }
+
+    @Override
+    public Task getItem(int position) {
+        return tasks.get(position);
+    }
+
     public void updateTasks(List<Task> newTasks) {
-        this.tasks.clear();
-        this.tasks.addAll(newTasks);
+        tasks.clear();
+        tasks.addAll(newTasks);
         notifyDataSetChanged();
     }
 }
