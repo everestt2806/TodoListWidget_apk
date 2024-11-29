@@ -3,7 +3,8 @@
     package="com.midterm.todolistwidget">
 
     <application
-        android:theme="@style/Theme.AppCompat.Light.DarkActionBar"> <!-- Thêm theme cho toàn bộ ứng dụng -->
+        android:theme="@style/Theme.AppCompat.Light.DarkActionBar"
+        android:label="@string/app_name">
 
         <!-- MainActivity -->
         <activity
